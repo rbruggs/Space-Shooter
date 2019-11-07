@@ -6,6 +6,7 @@ public class Player: MonoBehaviour
 {
     [SerializeField]
     private float _speed = 3.5f;
+    private float _speedBoost = 8.5f;
     [SerializeField]
     private GameObject _laserPrefab;
     [SerializeField]
@@ -14,21 +15,40 @@ public class Player: MonoBehaviour
     [SerializeField]
     private int _lives = 3;
     private Spawn_Manager _spawnManager;
-    [SerializeField]
     private bool isTripleShotActive = false;
     [SerializeField]
     private GameObject _tripleShotPrefab;
+    private bool _isShieldsActive = false;
+    [SerializeField]
+    private GameObject _shieldVisualizer;
+    [SerializeField]
+    private int _score = 0;
+
+    [SerializeField]
+    private UIManager _uiManager;
+
+    [SerializeField]
+    private GameObject _right_Engine_Fire;
+    [SerializeField]
+    private GameObject _left_Engine_Fire;
+    private float _is_Right_Engine_Burning;
 
     // Start is called before the first frame update
     void Start()
     {
         _spawnManager = GameObject.Find("Spawn_Manager").GetComponent<Spawn_Manager>();
         transform.position = new Vector3(0, 0, 0);
+        _uiManager = GameObject.Find("Canvas").GetComponent<UIManager>();
 
         if(_spawnManager == null)
         {
             Debug.LogError("The Spawn Manager is NULL.");
         }        
+
+        if(_uiManager == null)
+        {
+            Debug.LogError("The UI Manager is NULL");
+        }
     }
 
     // Update is called once per frame
@@ -39,7 +59,7 @@ public class Player: MonoBehaviour
         if(Input.GetKeyDown(KeyCode.Space) && Time.time > _canFire)
         {
             FireLaser();
-        }
+        }     
     }
 
 
@@ -83,11 +103,45 @@ public class Player: MonoBehaviour
     }
     public void Damage()
     {
-        _lives--;
+        if (_isShieldsActive == true)
+        {
+            _isShieldsActive = false;
+            _shieldVisualizer.SetActive(false);
+            return;
+        }
+            _lives--;
+            _uiManager.updateLives(_lives);
 
+        if(_lives == 2)
+        {
+            _is_Right_Engine_Burning = Random.Range(0, 2);
+            if(_is_Right_Engine_Burning == 0)
+            {
+                _right_Engine_Fire.SetActive(true);
+            }
+            else
+            {
+                _left_Engine_Fire.SetActive(true);
+            }
+        }
+
+        if(_lives == 1)
+        {
+            if(_is_Right_Engine_Burning == 0)
+            {
+                _left_Engine_Fire.SetActive(true);
+            }
+            else
+            {
+                _right_Engine_Fire.SetActive(true);
+            }
+            
+        }
+        
         if (_lives < 1)
         {
-            _spawnManager.OnPlayerDeath();
+            _spawnManager.OnPlayerDeath(); 
+            _uiManager.displayGaveOver();
             Destroy(this.gameObject);
         }
     }
@@ -100,10 +154,33 @@ public class Player: MonoBehaviour
 
     IEnumerator TripleShotDownRoutine()
     {
-        while(isTripleShotActive == true)
-        {
-            yield return new WaitForSeconds(5.0f);
-            isTripleShotActive = false;
-        }
+         yield return new WaitForSeconds(5.0f);
+         isTripleShotActive = false;
+        
+    }
+
+    public void ActivateSpeedBoost()
+    {
+        _speed = _speedBoost;
+        StartCoroutine(SpeedBoostDownRoutine());
+    }
+
+       IEnumerator SpeedBoostDownRoutine()
+    {
+        yield return new WaitForSeconds(5.0f);
+        _speed = 5.0f;
+        
+    }
+
+    public void ActivateShields()
+    {
+        _isShieldsActive = true;
+        _shieldVisualizer.SetActive(true);
+    }
+
+    public void AddScore(int points)
+    {
+        _score += points;
+        _uiManager.updateScore(_score);
     }
 }
